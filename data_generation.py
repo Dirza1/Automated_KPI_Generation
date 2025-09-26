@@ -1,6 +1,6 @@
-import pandas as pd
+import pandas as pd # type: ignore
 from pathlib import Path
-import numpy as np
+import numpy as np # type: ignore
 
 # Output folder
 output_dir = Path("report_excels")
