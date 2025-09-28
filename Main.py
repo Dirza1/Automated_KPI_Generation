@@ -1,6 +1,8 @@
 from pathlib import Path
 from classes import product,customer,region
 import os
+import pandas as pd 
+from pandas import DataFrame,Series # type: ignore
 
 
 def main()->None:
@@ -12,6 +14,10 @@ def main()->None:
    #we can also ensure there are only report that contain sales in the name for example.
    current_path:str = os.getcwd() 
    files_in_current_path:list = os.listdir(current_path + "/report_excels")
+   filepaths:list = []
+   for file in files_in_current_path:
+       filepaths.append(current_path + "/" + file)
+   
 
    #after getting the files we will define the data structures we need to contain the information.
    #In the example file with one excell sheet we used a dictionaty with a list. For this one we are gonne make it a bit more complicated. 
@@ -35,10 +41,8 @@ def main()->None:
    #or high in a large company and work with summaries this is an option.
 
    for file in files_in_current_path:
-       with open(file=file, mode="r") as file:
-           for row in file:
-               #implement panda's
-               pass
-
+       filepath:str = "./report_excels/" + file
+       datafile:DataFrame = pd.read_excel(filepath)
+      
 if __name__ == "__main__":
     main()
