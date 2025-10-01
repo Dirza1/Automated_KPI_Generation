@@ -43,6 +43,7 @@ def main()->None:
    for file in files_in_current_path:
        filepath:str = "./report_excels/" + file
        datafile:DataFrame = pd.read_excel(filepath)
+       print(datafile)
       
 if __name__ == "__main__":
     main()
