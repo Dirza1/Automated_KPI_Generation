@@ -41,9 +41,23 @@ def main()->None:
    #or high in a large company and work with summaries this is an option.
 
    for file in files_in_current_path:
-       filepath:str = "./report_excels/" + file
-       datafile:DataFrame = pd.read_excel(filepath)
-       print(datafile)
+        filepath:str = "./report_excels/" + file
+        datafile:DataFrame = pd.read_excel(filepath)
+        
+        gamme = datafile[(datafile["Customer"] == "Gamma Inc")]
+        betal = datafile[(datafile["Customer"] == "Beta Ltd")]
+        acme = datafile[(datafile["Customer"] == "Acne Corp")]
+
+        nor =  datafile[(datafile["Region"] == "North")]
+        eas = datafile[(datafile["Region"] == "East")]
+        wes = datafile[(datafile["Region"] == "West")]
+        sout = datafile[(datafile["Region"] == "South")]
+
+        a = datafile[(datafile["Product"] == "Widget A")]
+        b = datafile[(datafile["Product"] == "Widget B")]
+        c= datafile[(datafile["Product"] == "Widget C")]
+
+        print(c)
       
 if __name__ == "__main__":
     main()
