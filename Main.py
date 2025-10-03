@@ -1,5 +1,5 @@
 from pathlib import Path
-from classes import product,customer,region
+from collections import defaultdict
 import os
 import pandas as pd 
 from pandas import DataFrame,Series # type: ignore
@@ -20,44 +20,46 @@ def main()->None:
    
 
    #after getting the files we will define the data structures we need to contain the information.
-   #In the example file with one excell sheet we used a dictionaty with a list. For this one we are gonne make it a bit more complicated. 
-   #We are gonna make a class system for the indivigual products and clients. Look in the classes.py file for the classes.
+   #Same as with the other script we will use a dictionary. This dictionary will have a bit more of a complex structure.
+   #as we dont only want the data we also want the assosiated month with it. So the keys in the dictionary will be the month wich will hold multiple other dictionarys.
 
-   north:region = region()
-   south:region = region()
-   east:region = region()
-   west:region = region()
+   total_customer_data:defaultdict = defaultdict(
+       lambda: defaultdict(
+           lambda: defaultdict(int)
+       )
+   )
+   total_product_data:defaultdict = defaultdict(
+       lambda: defaultdict(
+           lambda: defaultdict(int)
+       )
+   )
+   total_region_data:defaultdict = defaultdict(
+       lambda: defaultdict(
+           lambda: defaultdict(int)
+       )
+   )
 
-   widgeta:product = product()
-   widgetb:product = product()
-   widgetc:product = product()
+    #so we haave one dictionary for each KPI we aare interested in.
+    #now we can populate them
 
-   gammainc:customer = customer()
-   betaltd:customer = customer()
-   acmecorp:customer = customer()
-
-   #now we have instansiates the classes we need for this KPI generation.
-   #obiusly this is very restricive when adding new customers or products but when you are eitehr small
-   #or high in a large company and work with summaries this is an option.
 
    for file in files_in_current_path:
         filepath:str = "./report_excels/" + file
         datafile:DataFrame = pd.read_excel(filepath)
         
-        gamme = datafile[(datafile["Customer"] == "Gamma Inc")]
-        betal = datafile[(datafile["Customer"] == "Beta Ltd")]
-        acme = datafile[(datafile["Customer"] == "Acne Corp")]
+        #so now we are in our file we need to transform the name of the file to the month. So we need to strip the "sales_" prefix and xlsx postfix
+        month:str = file.removeprefix("sales_").removesuffix(".xlsx")
+        
+        #we are now reaady to start filling the data
 
-        nor =  datafile[(datafile["Region"] == "North")]
-        eas = datafile[(datafile["Region"] == "East")]
-        wes = datafile[(datafile["Region"] == "West")]
-        sout = datafile[(datafile["Region"] == "South")]
+        for row in datafile.iterrows():
+            #we first take all the KPI's needed for the customers. Quantity, Totl value, Total per regon, Total per product
+            #The way we do this makes it a bit les flexible, but there are ways around this aswel. For example aan json file with products so we caan filter on all products.
+            #For this show case I will not implement them, but it is possible
+           total_customer_data[month][row[1][2]]["Quantity"] += row[1][5]
+           total_customer_data[month][row[1][2]]["Total Value"] += row[1][5] * row[1][6]
+           total_customer_data[month][row[1][2]][row[1][3]] += row[1][5]
+           total_customer_data[month][row[1][2]][row[1][4]] += row[1][5]
 
-        a = datafile[(datafile["Product"] == "Widget A")]
-        b = datafile[(datafile["Product"] == "Widget B")]
-        c= datafile[(datafile["Product"] == "Widget C")]
-
-        print(c)
-      
 if __name__ == "__main__":
     main()
