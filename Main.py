@@ -3,7 +3,10 @@ from collections import defaultdict
 import os
 import pandas as pd 
 from pandas import DataFrame
-
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import os
 
 def main()->None:
     """
@@ -42,7 +45,6 @@ def main()->None:
     #so we haave one dictionary for each KPI we aare interested in.
     #now we can populate them
 
-
     for file in files_in_current_path:
         filepath:str = "./report_excels/" + file
         datafile:DataFrame = pd.read_excel(filepath)
@@ -60,12 +62,10 @@ def main()->None:
             total_customer_data[month][row[1][2]][row[1][3]] += row[1][5]
             total_customer_data[month][row[1][2]][row[1][4]] += row[1][5]
 
-
             total_product_data[month][row[1][4]]["Quantity"] += row[1][5]
             total_product_data[month][row[1][4]]["Total Value"] += row[1][5] * row[1][6]
             total_product_data[month][row[1][4]][row[1][2]] += row[1][5] 
             total_product_data[month][row[1][4]][row[1][3]] += row[1][5]
-
 
             total_region_data[month][row[1][3]]["Quantity"] += row[1][5]
             total_region_data[month][row[1][3]]["Total Value"] += row[1][5] * row[1][6]
@@ -79,31 +79,122 @@ def main()->None:
 
     months:list = ["jan", "feb", "mar","apr"] #extend for the full year
     customer_names:list = ["Gamma Inc","Beta Ltd","Acme Corp"] #all customer names
-    KPI_names:list = ["Quantity","Total Value","North","East","South","West", "Widget A", "Widget B", "Widget C"]
-    #TODO, report writing in diferent method return a DF. Pass the list needed. 2 extra lists with customers and product and those are inputs in the writer method
+    product_naames:list = ["Widget A", "Widget B", "Widget C"]
+    region_names:list = ["North", "East","South","West"]
+    KPI_names:list = ["Quantity","Total Value","North","East","South","West", "Widget A", "Widget B", "Widget C","Gamma Inc","Beta Ltd","Acme Corp"]
+        
+    customer_df:DataFrame = generate_dataframe(data = total_customer_data,months=months,columns=customer_names,KPIs=KPI_names)
+    product_df:DataFrame = generate_dataframe(data = total_product_data,columns=product_naames,KPIs= KPI_names,months=months)
+    region_df:DataFrame = generate_dataframe(data=total_region_data,months=months,columns=region_names,KPIs=KPI_names)
+
+    #write the data to an excell sheet.    
+    with pd.ExcelWriter("Sales KPI's.xlsx") as writer:
+        customer_df.to_excel(writer, sheet_name="Customers")
+        product_df.to_excel(writer,"Products")
+        region_df.to_excel(writer,"regions")
+
+    #now to make some nice pictures
+    make_dashboard(customer_df,product_df,region_df)
+
+def make_dashboard(customer_df, product_df, region_df, outdir="figures"):
+    """
+    Generate KPI charts from the customer, product, and region DataFrames
+    and save them as PNG files.
+    """
+
+    # Ensure the output directory exists
+    os.makedirs(outdir, exist_ok=True)
+
+    # === Customer KPIs ===
+    # Quantity per customer
+    quantity_df = customer_df.loc["Quantity"]
+    quantity_df.plot(kind="bar")
+    plt.title("Quantity per customer per month")
+    plt.ylabel("Units")
+    plt.savefig(f"{outdir}/quantity_per_customer.png", bbox_inches="tight")
+    plt.close()
+
+    # Total Value per customer
+    total_value_df = customer_df.loc["Total Value"]
+    total_value_df.T.plot(marker="o")
+    plt.title("Total Value per customer per month")
+    plt.ylabel("Value (€)")
+    plt.savefig(f"{outdir}/total_value_per_customer.png", bbox_inches="tight")
+    plt.close()
+
+    # Regional distribution stacked bar
+    regions = ["North", "East", "South", "West"]
+    region_split = customer_df.loc[regions]
+    region_split.T.plot(kind="bar", stacked=True)
+    plt.title("Regional distribution per customer/month")
+    plt.ylabel("Units")
+    plt.savefig(f"{outdir}/region_distribution.png", bbox_inches="tight")
+    plt.close()
+
+    # Product mix stacked bar
+    widgets = ["Widget A", "Widget B", "Widget C"]
+    product_split = customer_df.loc[widgets]
+    product_split.T.plot(kind="bar", stacked=True)
+    plt.title("Product mix per customer/month")
+    plt.ylabel("Units")
+    plt.savefig(f"{outdir}/product_mix.png", bbox_inches="tight")
+    plt.close()
+
+    # === Product KPIs ===
+    prod_quantity_df = product_df.loc["Quantity"]
+    prod_quantity_df.plot(kind="bar")
+    plt.title("Quantity per product per month")
+    plt.ylabel("Units")
+    plt.savefig(f"{outdir}/quantity_per_product.png", bbox_inches="tight")
+    plt.close()
+
+    # === Region KPIs ===
+    reg_quantity_df = region_df.loc["Quantity"]
+    reg_quantity_df.plot(kind="bar")
+    plt.title("Quantity per region per month")
+    plt.ylabel("Units")
+    plt.savefig(f"{outdir}/quantity_per_region.png", bbox_inches="tight")
+    plt.close()
+
+def generate_dataframe(data:defaultdict, months:list, columns:list,KPIs:list) -> DataFrame:
+    """
+    This function creates a DataFrame for the excel file.
+    It takes the data, the 3 layerd dictionary, The months we want as main columns, the cub colums aand the KPI's.
+    It then renerates a DataFrame to be written to a xlsx file
+    """
+    #remove the column names from the KPI's
+    subKPI:list = KPIs.copy()
+    for value in columns:
+        if value in subKPI:
+            subKPI.remove(value)
+    
+    #Generate a list with the dictionaries to write to excel 
     rows_customers:list = []    
     for month in months:
-        if month in total_customer_data:
-            for customer in customer_names:
-                if customer in total_customer_data[month]:
-                    for KPI in KPI_names:
-                        if KPI in total_customer_data[month][customer]:
-                            rows_customers.append({"Month":month, "Customer": customer, "KPI": KPI, "Value": total_customer_data[month][customer][KPI]})
+        if month in data:
+            for column in columns:
+                if column in data[month]:
+                    for KPI in subKPI:
+                        if KPI in data[month][column]:
+                            rows_customers.append({"Month":month, "Column": column, "KPI": KPI, "Value": data[month][column][KPI]})
     
     df_long = pd.DataFrame(rows_customers)
 
-    df_pivot = df_long.pivot(index="KPI",columns=['Month','Customer'],values='Value')
+    #create  picot and reindex on KPI's
+    df_pivot = df_long.pivot(index="KPI",columns=['Month','Column'],values='Value')
 
     df_pivot = df_pivot.fillna(0).replace("", 0)
 
-    df_pivot = df_pivot.reindex(KPI_names)
+    df_pivot = df_pivot.reindex(subKPI)
 
-    df_pivot = df_pivot.reindex(columns=pd.MultiIndex.from_product([months, customer_names], names=['Month', 'Customer']))
+    df_pivot = df_pivot.reindex(columns=pd.MultiIndex.from_product([months, columns], names=['Month', 'Column']))
 
-    df_pivot.columns.names = ["Month","Customer"]
+    df_pivot.columns.names = ["Month","Column"]
 
-    df_pivot.to_excel("test.xlsx")
-        
+    return df_pivot
+    
     
 if __name__ == "__main__":
     main()
+
+
